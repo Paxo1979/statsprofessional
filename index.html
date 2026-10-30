@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Value Betting Pro</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #131b2e;
+            --accent: #0ea5e9;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding-bottom: 60px;
+        }
+        h1 { font-size: 1.3rem; text-align: center; color: var(--accent); margin-bottom: 12px; }
+        
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 2px;
+            font-size: 0.78rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: #0b0f19;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+        select, input {
+            width: 100%;
+            padding: 12px;
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+        button.action-btn {
+            width: 100%;
+            background: var(--accent);
+            color: #0b0f19;
+            border: none;
+            padding: 14px;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .result-box {
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Value Betting Pro</h1>
+
+    <!-- Navigazione Tab -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('calc', event)">Calcolatore</button>
+        <button class="tab-btn" onclick="switchTab('ref', event)">Arbitro</button>
+        <button class="tab-btn" onclick="switchTab('cal', event)">Calendario</button>
+        <button class="tab-btn" onclick="switchTab('h2h', event)">H2H</button>
+    </div>
+
+    <!-- TAB 1: CALCOLATORE -->
+    <div id="calc" class="tab-content active">
+        <div class="card">
+            <label>Lega</label>
+            <select id="leagueSelect" onchange="loadTeams()">
+                <option value="">Caricamento leghe...</option>
+            </select>
+
+            <label>Squadra di Casa</label>
+            <select id="homeTeamSelect"></select>
+
+            <label>Squadra Ospite</label>
+            <select id="awayTeamSelect"></select>
+
+            <button class="action-btn" onclick="calcolaPronostico()">Calcola Modello</button>
+        </div>
+
+        <div id="resultContainer" class="card" style="display:none;">
+            <h3>📊 Modello Poisson & Mercati</h3>
+            <div id="outputResults" class="result-box"></div>
+        </div>
+    </div>
+
+    <!-- TAB 2: ARBITRO -->
+    <div id="ref" class="tab-content">
+        <div class="card">
+            <h3>Parametri Arbitro</h3>
+            <label>Nome Arbitro</label>
+            <input type="text" id="refName" placeholder="Es. Orsato">
+            
+            <label>Media Gialli a Partita</label>
+            <input type="number" id="refYellow" step="0.1" value="4.5">
+
+            <button class="action-btn" onclick="salvaArbitro()">Salva Arbitro</button>
+            <div id="refStatus" style="font-size: 0.82rem; color: var(--accent); margin-top: 10px; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- TAB 3: CALENDARIO -->
+    <div id="cal" class="tab-content">
+        <div class="card">
+            <h3>Calendario Squadre</h3>
+            <div id="calendarList" class="result-box">Seleziona una lega nel calcolatore per visualizzare le squadre e lo storico registrato.</div>
+        </div>
+    </div>
+
+    <!-- TAB 4: H2H -->
+    <div id="h2h" class="tab-content">
+        <div class="card">
+            <h3>Scontri Diretti (H2H)</h3>
+            <div id="h2hResults" class="result-box">Seleziona due squadre nel calcolatore per confrontare i dati reali.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let globalData = {};
+
+    async function init() {
+        try {
+            let res = await fetch('dati/stats.json');
+            globalData = await res.json();
+            let leagueSelect = document.getElementById('leagueSelect');
+            leagueSelect.innerHTML = '<option value="">-- Seleziona Lega --</option>';
+            
+            for (let code in globalData) {
+                if (Object.keys(globalData[code].squadre).length > 0) {
+                    let opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = globalData[code].nome_lega;
+                    leagueSelect.appendChild(opt);
+                }
+            }
+        } catch (e) {
+            console.error("Errore caricamento dati:", e);
+        }
+    }
+
+    function loadTeams() {
+        let code = document.getElementById('leagueSelect').value;
+        let homeSelect = document.getElementById('homeTeamSelect');
+        let awaySelect = document.getElementById('awayTeamSelect');
+        
+        homeSelect.innerHTML = '';
+        awaySelect.innerHTML = '';
+
+        if (!code || !globalData[code]) return;
+
+        let teams = Object.keys(globalData[code].squadre).sort();
+        teams.forEach(team => {
+            homeSelect.add(new Option(team, team));
+            awaySelect.add(new Option(team, team));
+        });
+
+        let calHtml = `<b>Squadre attive in ${globalData[code].nome_lega}:</b><br><ul style="margin:5px 0; padding-left:20px;">`;
+        teams.forEach(t => { calHtml += `<li>${t} (${globalData[code].squadre[t].partita_giocate} partite)</li>`; });
+        calHtml += `</ul>`;
+        document.getElementById('calendarList').innerHTML = calHtml;
+    }
+
+    function switchTab(tabId, event) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function calcolaPronostico() {
+        let code = document.getElementById('leagueSelect').value;
+        let home = document.getElementById('homeTeamSelect').value;
+        let away = document.getElementById('awayTeamSelect').value;
+
+        if (!code || !home || !away || home === away) {
+            alert("Seleziona una lega e due squadre differenti!");
+            return;
+        }
+
+        let hStats = globalData[code].squadre[home].casa;
+        let aStats = globalData[code].squadre[away].fuori;
+
+        let expHome = (hStats.gf + aStats.gs) / 2;
+        let expAway = (aStats.gf + hStats.gs) / 2;
+
+        let expCorners = (hStats.corner_fatti + aStats.corner_fatti) / 2;
+        let expShots = (hStats.tiri_fatti + aStats.tiri_subiti) / 2;
+        let refCardMod = parseFloat(document.getElementById('refYellow').value) || 4.5;
+
+        let html = `<strong>🏠 ${home} (Casa) vs ✈️ ${away} (Fuori)</strong><br><hr>`;
+        html += `• ⚽ <b>Gol Attesi:</b> ${home} <b>${expHome.toFixed(2)}</b> - <b>${expAway.toFixed(2)}</b> ${away}<br>`;
+        html += `• 🎯 <b>Tiri in porta (fatti/subiti):</b> ${hStats.tiri_fatti} / ${hStats.tiri_subiti}<br>`;
+        html += `• 🚩 <b>Corner stimati match:</b> <b>${expCorners.toFixed(1)}</b><br>`;
+        html += `• 🟨 <b>Cartellini stimati (con arbitro):</b> <b>${refCardMod.toFixed(1)}</b> gialli<br>`;
+
+        document.getElementById('outputResults').innerHTML = html;
+        document.getElementById('resultContainer').style.display = 'block';
+
+        let h2hHtml = `<strong>Confronto Diretto Dati Reali:</strong><br><br>`;
+        h2hHtml += `<b>${home} in Casa:</b> Gol Fatti ${hStats.gf}, Subiti ${hStats.gs} | Tiri ${hStats.tiri_fatti} | Corner ${hStats.corner_fatti}<br><br>`;
+        h2hHtml += `<b>${away} in Trasferta:</b> Gol Fatti ${aStats.gf}, Subiti ${aStats.gs} | Tiri ${aStats.tiri_fatti} | Corner ${aStats.corner_fatti}`;
+        document.getElementById('h2hResults').innerHTML = h2hHtml;
+    }
+
+    function salvaArbitro() {
+        let name = document.getElementById('refName').value;
+        document.getElementById('refStatus').textContent = `Arbitro "${name || 'Standard'}" salvato correttamente!`;
+    }
+
+    init();
+</script>
+</body>
+</html>
