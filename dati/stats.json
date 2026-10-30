@@ -1,0 +1,34 @@
+{
+    "serie_a": {
+        "nome_lega": "Serie A",
+        "squadre": {}
+    },
+    "premier_league": {
+        "nome_lega": "Premier League",
+        "squadre": {}
+    },
+    "la_liga": {
+        "nome_lega": "La Liga",
+        "squadre": {}
+    },
+    "bundesliga": {
+        "nome_lega": "Bundesliga",
+        "squadre": {}
+    },
+    "ligue_1": {
+        "nome_lega": "Ligue 1",
+        "squadre": {}
+    },
+    "olanda": {
+        "nome_lega": "Eredivisie",
+        "squadre": {}
+    },
+    "belgio": {
+        "nome_lega": "Pro League",
+        "squadre": {}
+    },
+    "turchia": {
+        "nome_lega": "Süper Lig",
+        "squadre": {}
+    }
+}
