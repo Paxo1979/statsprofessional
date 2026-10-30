@@ -1,3 +1,4 @@
+
 import os
 import csv
 import requests
@@ -6,7 +7,7 @@ import json
 
 os.makedirs('dati', exist_ok=True)
 
-# Mappatura leghe con codici ufficiali di Football-Data.co.uk (Stagione 2026/2027)
+# Mappatura leghe con codici ufficiali Football-Data.co.uk (Stagione 2026/2027)
 LEAGUES = {
     "serie_a": {"nome": "Serie A", "code": "I1"},
     "premier_league": {"nome": "Premier League", "code": "E0"},
@@ -33,6 +34,7 @@ for key, info in LEAGUES.items():
             reader = csv.DictReader(io.StringIO(decoded_content))
             
             for row in reader:
+                # Normalizza le chiavi rimuovendo spazi e maiuscole
                 r = {k.strip().upper(): v.strip() for k, v in row.items() if k}
                 
                 home = r.get('HOMETEAM', '')
@@ -59,7 +61,7 @@ for key, info in LEAGUES.items():
                     team_stats[away] = {'p_casa': 0, 'gf_c': 0, 'gs_c': 0, 'tiri_f_c': 0, 'tiri_s_c': 0, 'corn_f_c': 0, 'corn_s_c': 0, 'cart_f_c': 0, 'cart_s_c': 0,
                                         'p_fuori': 0, 'gf_f': 0, 'gs_f': 0, 'tiri_f_f': 0, 'tiri_s_f': 0, 'corn_f_f': 0, 'corn_s_f': 0, 'cart_f_f': 0, 'cart_s_f': 0}
 
-                # Casa
+                # Statistiche Casa
                 ts_h = team_stats[home]
                 ts_h['p_casa'] += 1
                 ts_h['gf_c'] += fthg
@@ -71,7 +73,7 @@ for key, info in LEAGUES.items():
                 ts_h['cart_f_c'] += hy
                 ts_h['cart_s_c'] += ay
 
-                # Trasferta
+                # Statistiche Trasferta
                 ts_a = team_stats[away]
                 ts_a['p_fuori'] += 1
                 ts_a['gf_f'] += ftag
@@ -112,9 +114,9 @@ for key, info in LEAGUES.items():
                     }
                 }
     except Exception as e:
-        print(f"Errore {info['nome']}: {e}")
+        print(f"Errore scraping {info['nome']}: {e}")
 
 with open('dati/stats.json', 'w', encoding='utf-8') as f:
     json.dump(dati_finali, f, ensure_ascii=False, indent=4)
 
-print("Scraping CSV completato con successo!")
+print("Scraping CSV completato con dati reali!")
