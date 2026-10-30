@@ -1,0 +1,36 @@
+name: Update Football Stats
+
+on:
+  schedule:
+    - cron: '0 4 * * *' # Aggiornamento automatico ogni giorno alle 04:00
+  workflow_dispatch: # Permette di avviarlo manualmente dalla tab Actions
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Fondamentale per permettere allo script di salvare il JSON nel repo
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run Scraper
+        run: python scraper.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add dati/stats.json
+          git commit -m "Auto-update official stats [skip ci]" || exit 0
+          git push
